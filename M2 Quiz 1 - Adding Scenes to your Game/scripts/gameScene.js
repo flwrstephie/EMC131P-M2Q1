@@ -1,14 +1,9 @@
 import game from './game.js';
 
-// Variables
-let player, platforms, cursors, scoreText, bombs, fishies, playerSizeMultiplier = 1, playerColorIndex = 0;
-let playerColors = ['0xffadad', '0xffd6a5', '0xfdffb6', '0xcaffbf', '0x9bf6ff', '0xa0c4ff', '0xbdb2ff'];
-let score = 0;
-let gameOver = false;
-
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
+        this.playerColors = ['0xffadad', '0xffd6a5', '0xfdffb6', '0xcaffbf', '0x9bf6ff', '0xa0c4ff', '0xbdb2ff'];
     }
 
     preload() {
@@ -32,26 +27,32 @@ class GameScene extends Phaser.Scene {
             game.music.play({ loop: true });
         }
 
+        // Initialize game state variables
+        this.score = 0;
+        this.gameOver = false;
+        this.playerSizeMultiplier = 1;
+        this.playerColorIndex = 0;
+
         // Add background image
         this.add.image(400, 300, 'sky');
 
         // Add platforms
-        platforms = this.physics.add.staticGroup();
-        platforms.create(400, 572, 'ground').refreshBody();
-        platforms.create(600, 400, 'platform1');
-        platforms.create(120, 250, 'platform2');
-        platforms.create(700, 220, 'platform2');
+        this.platforms = this.physics.add.staticGroup();
+        this.platforms.create(400, 572, 'ground').refreshBody();
+        this.platforms.create(600, 400, 'platform1');
+        this.platforms.create(120, 250, 'platform2');
+        this.platforms.create(700, 220, 'platform2');
 
         // Add player
-        player = this.physics.add.sprite(100, 450, 'cat');
-        player.setBounce(0.2);
-        player.setCollideWorldBounds(true);
+        this.player = this.physics.add.sprite(100, 450, 'cat');
+        this.player.setBounce(0.2);
+        this.player.setCollideWorldBounds(true);
 
         // Add sound
         this.collectSound = this.sound.add('collectFish');
         
         // Add input keys
-        cursors = this.input.keyboard.createCursorKeys();
+        this.cursors = this.input.keyboard.createCursorKeys();
 
         // Player Movement
         this.anims.create({
@@ -75,78 +76,78 @@ class GameScene extends Phaser.Scene {
         });
 
         // Score text
-        scoreText = this.add.text(510, 20, 'Fishies Collected: 0', { 
+        this.scoreText = this.add.text(510, 20, 'Fishies Collected: 0', { 
             fontFamily: 'FatPix',
             fontSize: '25px',
             fill: '#282229' });
-        scoreText.setDepth(1);
+        this.scoreText.setDepth(1);
 
         // Add fishies
-        fishies = this.physics.add.group();
+        this.fishies = this.physics.add.group();
         for (let i = 0; i < 5; i++) {
             let x = Phaser.Math.Between(0, 800);
             let y = Phaser.Math.Between(0, 500);
-            let fish = fishies.create(x, y, 'fish');
+            let fish = this.fishies.create(x, y, 'fish');
             fish.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
         }
 
-        fishies.children.iterate(function (child) {
+        this.fishies.children.iterate(function (child) {
             child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
         });
 
         // Collisions
-        this.physics.add.collider(player, platforms);
-        this.physics.add.collider(fishies, platforms);
+        this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.collider(this.fishies, this.platforms);
 
         // Overlaps
-        this.physics.add.overlap(player, fishies, this.collectFishies, null, this);
+        this.physics.add.overlap(this.player, this.fishies, this.collectFishies, null, this);
 
         // Bombs
-        bombs = this.physics.add.group();
-        this.physics.add.collider(bombs, platforms);
-        this.physics.add.collider(player, bombs, this.hitBomb, null, this);
+        this.bombs = this.physics.add.group();
+        this.physics.add.collider(this.bombs, this.platforms);
+        this.physics.add.collider(this.player, this.bombs, this.hitBomb, null, this);
     }
 
     update() {
-        if (!gameOver) { // Check if game is not over
-            if (cursors.left.isDown) {
-                player.setVelocityX(-160);
-                player.anims.play('left', true);
-            } else if (cursors.right.isDown) {
-                player.setVelocityX(160);
-                player.anims.play('right', true);
+        if (!this.gameOver) { // Check if game is not over
+            if (this.cursors.left.isDown) {
+                this.player.setVelocityX(-160);
+                this.player.anims.play('left', true);
+            } else if (this.cursors.right.isDown) {
+                this.player.setVelocityX(160);
+                this.player.anims.play('right', true);
             } else {
-                player.setVelocityX(0);
-                player.anims.play('turn');
+                this.player.setVelocityX(0);
+                this.player.anims.play('turn');
             }
 
-            if (cursors.up.isDown && player.body.touching.down) {
-                player.setVelocityY(-330);
+            if (this.cursors.up.isDown && this.player.body.touching.down) {
+                this.player.setVelocityY(-330);
             }
         }
     }
 
     collectFishies(player, fish) {
         fish.disableBody(true, true);
-        score += 1;
-        scoreText.setText('Fishies Collected: ' + score);
+        this.score += 1;
+        this.scoreText.setText('Fishies Collected: ' + this.score);
 
         // Change player color
-        player.setTint(playerColors[playerColorIndex]);
-        playerColorIndex = (playerColorIndex + 1) % playerColors.length;
+        this.player.setTint(this.playerColors[this.playerColorIndex]);
+        this.playerColorIndex = (this.playerColorIndex + 1) % this.playerColors.length;
 
         // Increase player size every 5 fishies
-        if (score % 5 === 0) {
-            playerSizeMultiplier += 0.1;
-            player.setScale(playerSizeMultiplier);
+        if (this.score % 5 === 0) {
+            this.playerSizeMultiplier += 0.1;
+            this.player.setScale(this.playerSizeMultiplier);
         }
 
         var x = Phaser.Math.Between(0, 800);
         var y = Phaser.Math.Between(0, 200);
-        fishies.create(x, y, 'fish');
+        this.fishies.create(x, y, 'fish');
 
         // Check if 5 fishies have been collected
-        if (score % 5 === 0) {
+        if (this.score % 5 === 0) {
             this.spawnBomb();
         }
 
@@ -156,7 +157,7 @@ class GameScene extends Phaser.Scene {
     spawnBomb() {
         var x = Phaser.Math.Between(0, 800);
         var y = 16;
-        var bomb = bombs.create(x, y, 'bomb');
+        var bomb = this.bombs.create(x, y, 'bomb');
         bomb.setBounce(1);
         bomb.setCollideWorldBounds(true);
         bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
@@ -164,11 +165,11 @@ class GameScene extends Phaser.Scene {
 
     hitBomb(player, bomb) {
         this.physics.pause();
-        player.setTint(0xff0000);
-        player.anims.play('turn');
-        gameOver = true;
+        this.player.setTint(0xff0000);
+        this.player.anims.play('turn');
+        this.gameOver = true;
 
-        player.setVisible(false);
+        this.player.setVisible(false);
 
         // Display game over message
         var gameOverText = this.add.text(400, 300, 'Game Over', { 
@@ -207,12 +208,6 @@ class GameScene extends Phaser.Scene {
     }
 
     resetGame() {
-        score = 0;
-        gameOver = false;
-        playerSizeMultiplier = 1;
-        playerColorIndex = 0;
-
-        // Restart the scene
         this.scene.restart();
     }
 }
